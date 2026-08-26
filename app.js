@@ -9,8 +9,8 @@ const CUISINES = ["Italian", "Mexican", "Asian", "Chinese", "Japanese", "Indian"
 const ALLERGENS = ["dairy", "egg", "fish", "peanut", "sesame", "shellfish", "soy", "tree-nuts", "wheat"];
 const ALLERGEN_LABELS = { dairy:"Dairy", egg:"Egg", fish:"Fish", peanut:"Peanuts", sesame:"Sesame", shellfish:"Shellfish", soy:"Soy", "tree-nuts":"Tree nuts", wheat:"Wheat" };
 const DEFAULT_PREFERENCES = {
-  loves:["spicy", "protein", "global", "vegetables"],
-  cuisines:["Italian", "Mexican", "Asian", "Chinese", "Japanese"],
+  loves:["spicy", "protein", "comfort"],
+  cuisines:["Mexican", "Chinese", "Japanese", "Indian", "American"],
   likedDishes:["sushi"], dislikedDishes:["spaghetti and meatballs"], avoids:[], diet:"none",
 };
 const CUISINE_PATTERNS = {
@@ -179,6 +179,6 @@ $("#preferences-modal").addEventListener("mousedown", (event) => { if (event.tar
 document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !$("#preferences-modal").hidden) closePreferences(); });
 $("#liked-dish-form").addEventListener("submit", (event) => { event.preventDefault(); addDish("likedDishes", $("#liked-dish")); });
 $("#disliked-dish-form").addEventListener("submit", (event) => { event.preventDefault(); addDish("dislikedDishes", $("#disliked-dish")); });
-$("#reset-preferences").addEventListener("click", () => { state.preferences = { loves:[], cuisines:[], likedDishes:[], dislikedDishes:[], avoids:[], diet:"none" }; renderPreferences(); renderProfile(); renderLocations(); });
+$("#reset-preferences").addEventListener("click", () => { state.preferences = structuredClone(DEFAULT_PREFERENCES); renderPreferences(); renderProfile(); renderLocations(); });
 
 renderPreferences(); renderProfile(); loadMenus();
