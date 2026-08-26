@@ -12,6 +12,7 @@ API_ROOT = "https://wisc-housingdining.api.nutrislice.com"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = PROJECT_ROOT / "data" / "menus.json"
 MEALS = ("breakfast", "lunch", "dinner")
+MENU_TYPE_IDS = {"breakfast": 14942, "lunch": 14943, "dinner": 14944}
 FALLBACK_MARKETS = (
     {
         "id": 45373,
@@ -40,6 +41,21 @@ def dated_path(template: str, target: date) -> str:
         .replace("{month}", f"{target.month:02d}")
         .replace("{day}", f"{target.day:02d}")
     )
+
+
+def menu_types_for_school(school_id: int) -> list[dict]:
+    return [
+        {
+            "slug": meal,
+            "urls": {
+                "full_menu_by_date_api_url_template": (
+                    f"/menu/api/weeks/school/{school_id}/menu-type/{menu_type_id}/"
+                    "{year}/{month}/{day}"
+                )
+            },
+        }
+        for meal, menu_type_id in MENU_TYPE_IDS.items()
+    ]
 
 
 def simplify_day(raw_day: dict) -> list[dict]:
@@ -81,6 +97,12 @@ def main() -> None:
     schools = get_json(f"{API_ROOT}/menu/api/schools/")
     locations = []
 
+    active_slugs = {school["slug"] for school in schools}
+    active_names = {school["name"].casefold() for school in schools}
+    for market in FALLBACK_MARKETS:
+        if market["slug"] not in active_slugs and market["name"].casefold() not in active_names:
+            schools.append({**market, "active_menu_types": menu_types_for_school(market["id"])})
+
     for school in schools:
         location = {
             "id": school["id"],
@@ -98,7 +120,11 @@ def main() -> None:
                 template = (menu_type.get("urls") or {}).get("full_menu_by_date_api_url_template")
                 if not template:
                     continue
-                payload = get_json(f"{API_ROOT}{dated_path(template, week_start)}")
+                try:
+                    payload = get_json(f"{API_ROOT}{dated_path(template, week_start)}")
+                except (OSError, ValueError) as error:
+                    print(f"Could not load {school['name']} {meal}: {error}")
+                    continue
                 for raw_day in payload.get("days") or []:
                     day_value = raw_day.get("date")
                     if not day_value:
@@ -107,12 +133,6 @@ def main() -> None:
                     if today <= parsed <= last_day:
                         location["menus"].setdefault(day_value, {})[meal] = simplify_day(raw_day)
         locations.append(location)
-
-    active_slugs = {location["slug"] for location in locations}
-    active_names = {location["name"].casefold() for location in locations}
-    for market in FALLBACK_MARKETS:
-        if market["slug"] not in active_slugs and market["name"].casefold() not in active_names:
-            locations.append({**market, "menus": {}})
 
     dates = sorted({day for location in locations for day in location["menus"]})
     payload = {
