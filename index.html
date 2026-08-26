@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="UW–Madison dining menus ranked for your tastes—without accounts or stored personal data.">
+    <meta name="theme-color" content="#174c34">
+    <title>Badger Bites — Find your best UW meal</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Badger Bites home"><span class="brand-mark">B</span><span>Badger Bites</span></a>
+      <nav aria-label="Primary navigation"><a class="active" href="#rankings">Rankings</a><button type="button" data-open-preferences>Preferences</button><a href="https://wisc-housingdining.nutrislice.com/menu" target="_blank" rel="noreferrer">Source ↗</a></nav>
+      <button class="avatar" type="button" data-open-preferences aria-label="Edit taste profile">YOU</button>
+    </header>
+
+    <main class="page-shell" id="top">
+      <section class="hero">
+        <div><p class="eyebrow" id="date-kicker">UW–Madison Dining</p><h1>Your best <span id="meal-heading">lunch</span> is<br><em>right this way.</em></h1><p class="lede">Every available UW Housing menu, ranked for what you actually like.</p></div>
+        <div class="hero-actions" aria-label="Menu controls">
+          <button class="date-arrow" id="previous-day" aria-label="Previous day">‹</button>
+          <label class="date-button"><span>Date</span><select id="date-select" aria-label="Choose date"></select></label>
+          <button class="date-arrow" id="next-day" aria-label="Next day">›</button>
+          <label class="meal-button"><span>Meal</span><select id="meal-select" aria-label="Choose meal"><option value="breakfast">Breakfast</option><option value="lunch" selected>Lunch</option><option value="dinner">Dinner</option></select></label>
+        </div>
+      </section>
+
+      <div class="content-grid">
+        <section class="results" id="rankings" aria-labelledby="results-title">
+          <div class="section-heading"><div><p class="kicker">Best matches</p><h2 id="results-title">Where you should eat</h2></div><span class="live-pill" id="data-status"><i></i> Loading menus</span></div>
+          <div class="hall-list is-loading" id="hall-list" aria-live="polite" aria-busy="true"></div>
+        </section>
+
+        <aside class="preferences" aria-labelledby="profile-title">
+          <div class="preference-top"><span class="spark">✦</span><button type="button" data-open-preferences>Edit</button></div>
+          <p class="kicker">Your taste profile</p><h2 id="profile-title">Made for you</h2>
+          <div class="profile-meter"><div><strong id="profile-complete">0%</strong><span>complete</span></div><i><b id="profile-progress"></b></i></div>
+          <div id="profile-summary"></div>
+          <div class="preference-group diet-row"><div><h3>Diet</h3><p id="profile-diet">No restriction</p></div><span class="check">✓</span></div>
+          <p class="profile-note">Nothing is saved. Your choices reset when this tab reloads. Always confirm allergens with dining staff.</p>
+        </aside>
+      </div>
+    </main>
+
+    <div class="modal-backdrop" id="preferences-modal" hidden>
+      <section class="preference-modal" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+        <div class="modal-heading"><div><p class="kicker">Taste profile</p><h2 id="edit-title">Make the ranking yours</h2></div><button class="close-button" type="button" id="close-preferences" aria-label="Close preferences">×</button></div>
+        <p class="modal-copy">Pick what you enjoy and what the menu should filter out. These choices exist only in this open tab.</p>
+        <fieldset><legend>What do you love?</legend><div class="choice-grid" id="love-choices"></div></fieldset>
+        <fieldset><legend>Favorite cuisines</legend><div class="cuisine-choices" id="cuisine-choices"></div></fieldset>
+        <fieldset><legend>Diet</legend><div class="segmented" id="diet-choices"></div></fieldset>
+        <fieldset>
+          <legend>Specific dishes</legend>
+          <div class="dish-columns">
+            <div><label for="liked-dish">Dishes you love</label><form class="dish-entry" id="liked-dish-form"><input id="liked-dish" placeholder="e.g. chicken tacos"><button aria-label="Add favorite dish">+</button></form><div class="dish-tags liked" id="liked-dishes"></div></div>
+            <div><label for="disliked-dish">Dishes to skip</label><form class="dish-entry" id="disliked-dish-form"><input id="disliked-dish" placeholder="e.g. spaghetti and meatballs"><button aria-label="Add dish to skip">+</button></form><div class="dish-tags disliked" id="disliked-dishes"></div></div>
+          </div>
+        </fieldset>
+        <fieldset><legend>Filter out allergens</legend><div class="allergen-grid" id="allergen-choices"></div><p class="safety-copy">Nutrislice labels can change and cross-contact is possible. Confirm medical dietary needs with UW Dining staff.</p></fieldset>
+        <div class="modal-footer"><button class="reset-button" type="button" id="reset-preferences">Reset</button><button class="save-button" type="button" id="save-preferences">Use these preferences</button></div>
+      </section>
+    </div>
+
+    <footer>Static and private by design · Menu data from <a href="https://wisc-housingdining.nutrislice.com/menu" target="_blank" rel="noreferrer">UW–Madison Dining via Nutrislice ↗</a></footer>
+    <noscript>This site needs JavaScript to compare dining menus.</noscript>
+  </body>
+</html>
