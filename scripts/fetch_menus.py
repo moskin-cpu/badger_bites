@@ -12,6 +12,20 @@ API_ROOT = "https://wisc-housingdining.api.nutrislice.com"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = PROJECT_ROOT / "data" / "menus.json"
 MEALS = ("breakfast", "lunch", "dinner")
+FALLBACK_MARKETS = (
+    {
+        "id": 45373,
+        "name": "Carson's Market",
+        "slug": "carsons-market",
+        "address": "Carson Gulley Center · 1515 Tripp Cir.",
+    },
+    {
+        "id": 45374,
+        "name": "Liz's Market",
+        "slug": "lizs-market",
+        "address": "Waters Residence Hall · 1200 Observatory Dr.",
+    },
+)
 
 
 def get_json(url: str):
@@ -93,6 +107,12 @@ def main() -> None:
                     if today <= parsed <= last_day:
                         location["menus"].setdefault(day_value, {})[meal] = simplify_day(raw_day)
         locations.append(location)
+
+    active_slugs = {location["slug"] for location in locations}
+    active_names = {location["name"].casefold() for location in locations}
+    for market in FALLBACK_MARKETS:
+        if market["slug"] not in active_slugs and market["name"].casefold() not in active_names:
+            locations.append({**market, "menus": {}})
 
     dates = sorted({day for location in locations for day in location["menus"]})
     payload = {
