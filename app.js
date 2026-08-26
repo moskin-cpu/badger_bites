@@ -32,7 +32,7 @@ const RESIDENCE_HALLS = [
 const DEFAULT_PREFERENCES = {
   loves:["spicy", "protein", "comfort"],
   cuisines:["Mexican", "Chinese", "Japanese", "Indian", "American"],
-  likedDishes:["sushi"], dislikedDishes:["spaghetti and meatballs"], avoids:[], diet:"none", residenceHall:"",
+  avoidCuisines:[], likedDishes:["sushi"], dislikedDishes:["spaghetti and meatballs"], avoids:[], diet:"none", residenceHall:"",
 };
 const CUISINE_PATTERNS = {
   Italian:/pizza|pasta|pesto|lasagna|ravioli|cavatappi|marinara|parmesan|alfredo|italian/i,
@@ -86,6 +86,7 @@ function scoreLocation(location) {
   const safeItems = items.filter((item) => {
     if (preferences.diet !== "none" && !(item.traits || []).includes(preferences.diet)) return false;
     if ((item.allergens || []).some((allergen) => preferences.avoids.includes(allergen))) return false;
+    if (preferences.avoidCuisines.some((cuisine) => CUISINE_PATTERNS[cuisine]?.test(itemText(item)))) return false;
     return !preferences.dislikedDishes.some((dish) => item.name.toLowerCase().includes(dish.toLowerCase()));
   });
   const scoredItems = safeItems.map((item) => {
@@ -149,9 +150,10 @@ function renderProfile() {
   $("#profile-diet").textContent = titleCase(p.diet);
   const loveTags = p.loves.map((id) => LOVE_OPTIONS.find(([key]) => key === id)).filter(Boolean).map(([, icon, label]) => `<span>${icon} ${escapeHtml(label)}</span>`);
   const cuisineTags = p.cuisines.map((value) => `<span>${escapeHtml(value)}</span>`);
+  const avoidedCuisineTags = p.avoidCuisines.map((value) => `<span>${escapeHtml(value)}</span>`);
   const dishTags = p.dislikedDishes.map((value) => `<span>${escapeHtml(value)}</span>`);
   const avoidTags = p.avoids.map((value) => `<span>${escapeHtml(ALLERGEN_LABELS[value] || value)}</span>`);
-  $("#profile-summary").innerHTML = preferenceGroup("You love", "love-list", loveTags) + preferenceGroup("Favorite cuisines", "cuisine-list", cuisineTags) + preferenceGroup("Skip these dishes", "avoid-list", dishTags) + preferenceGroup("You avoid", "avoid-list", avoidTags);
+  $("#profile-summary").innerHTML = preferenceGroup("You love", "love-list", loveTags) + preferenceGroup("Favorite cuisines", "cuisine-list", cuisineTags) + preferenceGroup("Cuisines to avoid", "avoid-list", avoidedCuisineTags) + preferenceGroup("Skip these dishes", "avoid-list", dishTags) + preferenceGroup("Allergens filtered", "avoid-list", avoidTags);
 }
 
 function toggleArray(key, value) {
@@ -160,10 +162,19 @@ function toggleArray(key, value) {
   renderPreferences(); renderProfile(); renderLocations();
 }
 
+function toggleCuisinePreference(key, otherKey, value) {
+  const values = state.preferences[key];
+  const adding = !values.includes(value);
+  state.preferences[key] = adding ? [...values, value] : values.filter((item) => item !== value);
+  if (adding) state.preferences[otherKey] = state.preferences[otherKey].filter((item) => item !== value);
+  renderPreferences(); renderProfile(); renderLocations();
+}
+
 function renderPreferences() {
   const p = state.preferences;
   $("#love-choices").innerHTML = LOVE_OPTIONS.map(([id, icon, label]) => `<button type="button" data-love="${id}" class="${p.loves.includes(id) ? "selected" : ""}" aria-pressed="${p.loves.includes(id)}"><span>${icon}</span>${label}<b>✓</b></button>`).join("");
   $("#cuisine-choices").innerHTML = CUISINES.map((cuisine) => `<button type="button" data-cuisine="${cuisine}" class="${p.cuisines.includes(cuisine) ? "selected" : ""}" aria-pressed="${p.cuisines.includes(cuisine)}">${cuisine}<b>✓</b></button>`).join("");
+  $("#cuisine-avoid-choices").innerHTML = CUISINES.map((cuisine) => `<button type="button" data-avoid-cuisine="${cuisine}" class="${p.avoidCuisines.includes(cuisine) ? "selected" : ""}" aria-pressed="${p.avoidCuisines.includes(cuisine)}">${cuisine}<b>×</b></button>`).join("");
   $("#diet-choices").innerHTML = ["none", "vegetarian", "vegan", "halal"].map((diet) => `<button type="button" data-diet="${diet}" class="${p.diet === diet ? "selected" : ""}">${titleCase(diet)}</button>`).join("");
   $("#residence-hall-choice").innerHTML = '<option value="">None</option>' + RESIDENCE_HALLS.map((hall) => `<option value="${escapeHtml(hall.name)}">${escapeHtml(hall.name)}</option>`).join("");
   $("#residence-hall-choice").value = p.residenceHall;
@@ -172,7 +183,8 @@ function renderPreferences() {
   $("#liked-dishes").innerHTML = p.likedDishes.map((dish) => `<button type="button" data-remove-liked="${escapeHtml(dish)}">${escapeHtml(dish)} ×</button>`).join("");
   $("#disliked-dishes").innerHTML = p.dislikedDishes.map((dish) => `<button type="button" data-remove-disliked="${escapeHtml(dish)}">${escapeHtml(dish)} ×</button>`).join("");
   $("#love-choices").querySelectorAll("[data-love]").forEach((button) => button.addEventListener("click", () => toggleArray("loves", button.dataset.love)));
-  $("#cuisine-choices").querySelectorAll("[data-cuisine]").forEach((button) => button.addEventListener("click", () => toggleArray("cuisines", button.dataset.cuisine)));
+  $("#cuisine-choices").querySelectorAll("[data-cuisine]").forEach((button) => button.addEventListener("click", () => toggleCuisinePreference("cuisines", "avoidCuisines", button.dataset.cuisine)));
+  $("#cuisine-avoid-choices").querySelectorAll("[data-avoid-cuisine]").forEach((button) => button.addEventListener("click", () => toggleCuisinePreference("avoidCuisines", "cuisines", button.dataset.avoidCuisine)));
   $("#diet-choices").querySelectorAll("[data-diet]").forEach((button) => button.addEventListener("click", () => { p.diet = button.dataset.diet; renderPreferences(); renderProfile(); renderLocations(); }));
   $("#allergen-choices").querySelectorAll("[data-allergen]").forEach((button) => button.addEventListener("click", () => toggleArray("avoids", button.dataset.allergen)));
   $("#liked-dishes").querySelectorAll("[data-remove-liked]").forEach((button) => button.addEventListener("click", () => toggleArray("likedDishes", button.dataset.removeLiked)));
