@@ -59,9 +59,7 @@ function scoreLocation(location) {
     const dishPoints = preferences.likedDishes.reduce((sum, dish) => sum + (item.name.toLowerCase().includes(dish.toLowerCase()) ? 4 : 0), 0);
     return { item, points:lovePoints + cuisinePoints + dishPoints };
   }).sort((a, b) => b.points - a.points || (b.item.protein || 0) - (a.item.protein || 0));
-  const loveHits = scoredItems.reduce((sum, entry) => sum + entry.points, 0);
-  const score = safeItems.length ? Math.min(99, 54 + Math.min(14, safeItems.length) * 2 + Math.min(17, loveHits) * 2 + (preferences.diet !== "none" ? 4 : 0)) : 18;
-  return { ...location, items, safeItems, scoredItems, score, excluded:items.length - safeItems.length };
+  return { ...location, items, safeItems, scoredItems, excluded:items.length - safeItems.length };
 }
 
 function prettyDate(value) {
@@ -81,7 +79,7 @@ function renderControls() {
 
 function renderLocations() {
   if (!state.data) return;
-  const ranked = state.data.locations.map(scoreLocation).sort((a, b) => b.score - a.score);
+  const ranked = state.data.locations.map(scoreLocation).sort((a, b) => b.safeItems.length - a.safeItems.length || a.name.localeCompare(b.name));
   const list = $("#hall-list");
   list.classList.remove("is-loading");
   list.setAttribute("aria-busy", "false");
@@ -95,7 +93,7 @@ function renderLocations() {
     const menu = isOpen ? `<div class="full-menu">${hall.safeItems.length ? hall.safeItems.map((item) => `<div class="menu-row"><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.section)}${item.protein != null ? ` · ${Math.round(item.protein)}g protein` : ""}</small></div><div class="trait-tags">${(item.traits || []).slice(0, 2).map((trait) => `<span>${escapeHtml(trait.replaceAll("-", " "))}</span>`).join("")}</div></div>`).join("") : "<p>Adjust your preferences to see more choices.</p>"}</div>` : "";
     return `<article class="hall-card ${index === 0 ? "winner" : ""}">
       <div class="rank">${index + 1}</div><div class="hall-art ${["coral", "amber", "blue"][index % 3]}" aria-hidden="true"><span>${escapeHtml(hall.name.charAt(0))}</span></div>
-      <div class="hall-content"><div class="hall-title-row"><div>${index === 0 ? '<span class="top-pick">Top pick</span>' : ""}<h3>${escapeHtml(hall.name)}</h3><p>${escapeHtml(hall.address)} · ${hall.items.length} menu items</p></div><div class="score" aria-label="${hall.score} percent match"><strong>${hall.score}</strong><span>%</span><small>match</small></div></div>
+      <div class="hall-content"><div class="hall-title-row"><div>${index === 0 ? '<span class="top-pick">Most compatible items</span>' : ""}<h3>${escapeHtml(hall.name)}</h3><p>${escapeHtml(hall.address)} · ${hall.items.length} menu items</p></div></div>
       ${picks[0] ? `<p class="best-dish"><span>★</span> Best match: <strong>${escapeHtml(picks[0].item.name)}</strong></p><div class="chips">${picks.map(({item}) => `<span>${escapeHtml(item.name)}</span>`).join("")}</div>` : '<p class="no-match">No items match all of your current filters.</p>'}
       <div class="card-footer"><span>${hall.safeItems.length} compatible item${hall.safeItems.length === 1 ? "" : "s"}${hall.excluded ? ` · ${hall.excluded} filtered out` : ""}</span><button type="button" data-expand="${hall.id}" aria-expanded="${isOpen}">${isOpen ? "Hide menu ↑" : "See full menu →"}</button></div>${menu}</div></article>`;
   }).join("");
@@ -108,9 +106,6 @@ function preferenceGroup(title, className, values) {
 
 function renderProfile() {
   const p = state.preferences;
-  const complete = Math.min(100, 35 + p.loves.length * 6 + p.cuisines.length * 6 + (p.likedDishes.length + p.dislikedDishes.length) * 4 + p.avoids.length * 3 + (p.diet !== "none" ? 6 : 0));
-  $("#profile-complete").textContent = `${complete}%`;
-  $("#profile-progress").style.width = `${complete}%`;
   $("#profile-diet").textContent = titleCase(p.diet);
   const loveTags = p.loves.map((id) => LOVE_OPTIONS.find(([key]) => key === id)).filter(Boolean).map(([, icon, label]) => `<span>${icon} ${escapeHtml(label)}</span>`);
   const cuisineTags = p.cuisines.map((value) => `<span>${escapeHtml(value)}</span>`);

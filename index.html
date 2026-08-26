@@ -18,7 +18,7 @@
 
     <main class="page-shell" id="top">
       <section class="hero">
-        <div><p class="eyebrow" id="date-kicker">UW–Madison Dining</p><h1>Your best <span id="meal-heading">lunch</span> is<br><em>right this way.</em></h1><p class="lede">Every available UW Housing menu, ranked for what you actually like.</p></div>
+        <div><p class="eyebrow" id="date-kicker">UW–Madison Dining</p><h1>Your best <span id="meal-heading">lunch</span> is<br><em>right this way.</em></h1><p class="lede">Every available UW Housing menu, ranked by compatible item quantity.</p></div>
         <div class="hero-actions" aria-label="Menu controls">
           <button class="date-arrow" id="previous-day" aria-label="Previous day">‹</button>
           <label class="date-button"><span>Date</span><select id="date-select" aria-label="Choose date"></select></label>
@@ -29,14 +29,13 @@
 
       <div class="content-grid">
         <section class="results" id="rankings" aria-labelledby="results-title">
-          <div class="section-heading"><div><p class="kicker">Best matches</p><h2 id="results-title">Where you should eat</h2></div><span class="live-pill" id="data-status"><i></i> Loading menus</span></div>
+          <div class="section-heading"><div><p class="kicker">Most compatible items</p><h2 id="results-title">Where you should eat</h2></div><span class="live-pill" id="data-status"><i></i> Loading menus</span></div>
           <div class="hall-list is-loading" id="hall-list" aria-live="polite" aria-busy="true"></div>
         </section>
 
         <aside class="preferences" aria-labelledby="profile-title">
           <div class="preference-top"><span class="spark">✦</span><button type="button" data-open-preferences>Edit</button></div>
           <p class="kicker">Your taste profile</p><h2 id="profile-title">Made for you</h2>
-          <div class="profile-meter"><div><strong id="profile-complete">0%</strong><span>complete</span></div><i><b id="profile-progress"></b></i></div>
           <div id="profile-summary"></div>
           <div class="preference-group diet-row"><div><h3>Diet</h3><p id="profile-diet">No restriction</p></div><span class="check">✓</span></div>
           <p class="profile-note">Nothing is saved. Your choices reset when this tab reloads. Always confirm allergens with dining staff.</p>
