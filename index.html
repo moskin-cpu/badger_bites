@@ -51,6 +51,11 @@
         <fieldset><legend>Favorite cuisines</legend><div class="cuisine-choices" id="cuisine-choices"></div></fieldset>
         <fieldset><legend>Diet</legend><div class="segmented" id="diet-choices"></div></fieldset>
         <fieldset>
+          <legend>Residence hall <span class="optional-label">Optional</span></legend>
+          <label class="residence-field" for="residence-hall-choice"><span>Show distance from</span><select id="residence-hall-choice" aria-describedby="residence-help"></select></label>
+          <p class="field-help" id="residence-help">Choose “None” to hide distances. Estimates are straight-line distances and are not walking routes.</p>
+        </fieldset>
+        <fieldset>
           <legend>Specific dishes</legend>
           <div class="dish-columns">
             <div><label for="liked-dish">Dishes you love</label><form class="dish-entry" id="liked-dish-form"><input id="liked-dish" placeholder="e.g. chicken tacos"><button aria-label="Add favorite dish">+</button></form><div class="dish-tags liked" id="liked-dishes"></div></div>

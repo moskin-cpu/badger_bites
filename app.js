@@ -8,10 +8,31 @@ const LOVE_OPTIONS = [
 const CUISINES = ["Italian", "Mexican", "Asian", "Chinese", "Japanese", "Indian", "Mediterranean", "American"];
 const ALLERGENS = ["dairy", "egg", "fish", "peanut", "sesame", "shellfish", "soy", "tree-nuts", "wheat"];
 const ALLERGEN_LABELS = { dairy:"Dairy", egg:"Egg", fish:"Fish", peanut:"Peanuts", sesame:"Sesame", shellfish:"Shellfish", soy:"Soy", "tree-nuts":"Tree nuts", wheat:"Wheat" };
+const RESIDENCE_HALLS = [
+  { name:"Adams", latitude:43.07788036306996, longitude:-89.4119889394122 },
+  { name:"Barnard", latitude:43.07367782597888, longitude:-89.40222699941677 },
+  { name:"Bradley", latitude:43.07790973063353, longitude:-89.41643740567213 },
+  { name:"Chadbourne", latitude:43.07380625427833, longitude:-89.40121067983512 },
+  { name:"Cole", latitude:43.07736434754442, longitude:-89.41497582918734 },
+  { name:"Dejope", latitude:43.07775001972469, longitude:-89.41776736230737 },
+  { name:"Kronshage", latitude:43.07805728011479, longitude:-89.41451668739317 },
+  { name:"Leopold", latitude:43.07780565355987, longitude:-89.41442379330158 },
+  { name:"Lowell Center", latitude:43.07626741285504, longitude:-89.3958111338856 },
+  { name:"Merit", latitude:43.07075343657847, longitude:-89.40142974354197 },
+  { name:"Ogg", latitude:43.070536335080945, longitude:-89.40002924881604 },
+  { name:"Phillips", latitude:43.07855215848702, longitude:-89.4179873011807 },
+  { name:"Sellery", latitude:43.07164463190376, longitude:-89.40000895469616 },
+  { name:"Slichter", latitude:43.07712886046986, longitude:-89.41220813731039 },
+  { name:"Smith", latitude:43.06903738975022, longitude:-89.40039268946671 },
+  { name:"Sullivan", latitude:43.07760382061325, longitude:-89.415510654597 },
+  { name:"Tripp", latitude:43.077994145559124, longitude:-89.41096614975703 },
+  { name:"Waters", latitude:43.07694917047651, longitude:-89.40694288799442 },
+  { name:"Witte", latitude:43.07159091764505, longitude:-89.3969440656365 },
+];
 const DEFAULT_PREFERENCES = {
   loves:["spicy", "protein", "comfort"],
   cuisines:["Mexican", "Chinese", "Japanese", "Indian", "American"],
-  likedDishes:["sushi"], dislikedDishes:["spaghetti and meatballs"], avoids:[], diet:"none",
+  likedDishes:["sushi"], dislikedDishes:["spaghetti and meatballs"], avoids:[], diet:"none", residenceHall:"",
 };
 const CUISINE_PATTERNS = {
   Italian:/pizza|pasta|pesto|lasagna|ravioli|cavatappi|marinara|parmesan|alfredo|italian/i,
@@ -34,6 +55,21 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => 
 const titleCase = (value) => value === "none" ? "No restriction" : value.charAt(0).toUpperCase() + value.slice(1);
 
 function itemText(item) { return `${item.name} ${item.description || ""} ${item.section || ""}`; }
+function degreesToRadians(value) { return value * Math.PI / 180; }
+function distanceMiles(origin, destination) {
+  const latitudeDelta = degreesToRadians(destination.latitude - origin.latitude);
+  const longitudeDelta = degreesToRadians(destination.longitude - origin.longitude);
+  const originLatitude = degreesToRadians(origin.latitude);
+  const destinationLatitude = degreesToRadians(destination.latitude);
+  const haversine = Math.sin(latitudeDelta / 2) ** 2 + Math.cos(originLatitude) * Math.cos(destinationLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+  const boundedHaversine = Math.min(1, Math.max(0, haversine));
+  return 3958.8 * 2 * Math.atan2(Math.sqrt(boundedHaversine), Math.sqrt(1 - boundedHaversine));
+}
+function formatDistance(miles, residenceHall) {
+  if (miles < 0.03) return `Same building as ${residenceHall}`;
+  if (miles < 0.2) return `About ${Math.max(50, Math.round(miles * 5280 / 50) * 50)} ft from ${residenceHall}`;
+  return `About ${miles.toFixed(1)} mi from ${residenceHall}`;
+}
 function loveMatch(item, love) {
   const text = itemText(item).toLowerCase();
   if (love === "protein") return (item.protein || 0) >= 18 || /chicken|beef|turkey|tuna|tofu|egg|pork/.test(text);
@@ -59,7 +95,10 @@ function scoreLocation(location) {
     const dishPoints = preferences.likedDishes.reduce((sum, dish) => sum + (item.name.toLowerCase().includes(dish.toLowerCase()) ? 4 : 0), 0);
     return { item, points:lovePoints + cuisinePoints + dishPoints };
   }).sort((a, b) => b.points - a.points || (b.item.protein || 0) - (a.item.protein || 0));
-  return { ...location, items, safeItems, scoredItems, excluded:items.length - safeItems.length };
+  const residenceHall = RESIDENCE_HALLS.find((hall) => hall.name === preferences.residenceHall);
+  const coordinates = { latitude:Number(location.latitude), longitude:Number(location.longitude) };
+  const distance = residenceHall && Number.isFinite(coordinates.latitude) && Number.isFinite(coordinates.longitude) ? distanceMiles(residenceHall, coordinates) : null;
+  return { ...location, items, safeItems, scoredItems, distance, excluded:items.length - safeItems.length };
 }
 
 function prettyDate(value) {
@@ -90,10 +129,11 @@ function renderLocations() {
   list.innerHTML = ranked.map((hall, index) => {
     const picks = hall.scoredItems.slice(0, 3);
     const isOpen = state.expanded === hall.id;
+    const distance = hall.distance == null ? "" : `<p class="distance-copy">⌖ ${escapeHtml(formatDistance(hall.distance, state.preferences.residenceHall))}</p>`;
     const menu = isOpen ? `<div class="full-menu">${hall.safeItems.length ? hall.safeItems.map((item) => `<div class="menu-row"><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.section)}${item.protein != null ? ` · ${Math.round(item.protein)}g protein` : ""}</small></div><div class="trait-tags">${(item.traits || []).slice(0, 2).map((trait) => `<span>${escapeHtml(trait.replaceAll("-", " "))}</span>`).join("")}</div></div>`).join("") : "<p>Adjust your preferences to see more choices.</p>"}</div>` : "";
     return `<article class="hall-card ${index === 0 ? "winner" : ""}">
       <div class="rank">${index + 1}</div><div class="hall-art ${["coral", "amber", "blue"][index % 3]}" aria-hidden="true"><span>${escapeHtml(hall.name.charAt(0))}</span></div>
-      <div class="hall-content"><div class="hall-title-row"><div>${index === 0 ? '<span class="top-pick">Most compatible items</span>' : ""}<h3>${escapeHtml(hall.name)}</h3><p>${escapeHtml(hall.address)} · ${hall.items.length} menu items</p></div></div>
+      <div class="hall-content"><div class="hall-title-row"><div>${index === 0 ? '<span class="top-pick">Most compatible items</span>' : ""}<h3>${escapeHtml(hall.name)}</h3><p>${escapeHtml(hall.address)} · ${hall.items.length} menu items</p>${distance}</div></div>
       ${picks[0] ? `<p class="best-dish"><span>★</span> Best match: <strong>${escapeHtml(picks[0].item.name)}</strong></p><div class="chips">${picks.map(({item}) => `<span>${escapeHtml(item.name)}</span>`).join("")}</div>` : hall.items.length ? '<p class="no-match">No items match all of your current filters.</p>' : '<p class="no-match">No menu is published for this meal and date.</p>'}
       <div class="card-footer"><span>${hall.safeItems.length} compatible item${hall.safeItems.length === 1 ? "" : "s"}${hall.excluded ? ` · ${hall.excluded} filtered out` : ""}</span><button type="button" data-expand="${hall.id}" aria-expanded="${isOpen}">${isOpen ? "Hide menu ↑" : "See full menu →"}</button></div>${menu}</div></article>`;
   }).join("");
@@ -125,6 +165,9 @@ function renderPreferences() {
   $("#love-choices").innerHTML = LOVE_OPTIONS.map(([id, icon, label]) => `<button type="button" data-love="${id}" class="${p.loves.includes(id) ? "selected" : ""}" aria-pressed="${p.loves.includes(id)}"><span>${icon}</span>${label}<b>✓</b></button>`).join("");
   $("#cuisine-choices").innerHTML = CUISINES.map((cuisine) => `<button type="button" data-cuisine="${cuisine}" class="${p.cuisines.includes(cuisine) ? "selected" : ""}" aria-pressed="${p.cuisines.includes(cuisine)}">${cuisine}<b>✓</b></button>`).join("");
   $("#diet-choices").innerHTML = ["none", "vegetarian", "vegan", "halal"].map((diet) => `<button type="button" data-diet="${diet}" class="${p.diet === diet ? "selected" : ""}">${titleCase(diet)}</button>`).join("");
+  $("#residence-hall-choice").innerHTML = '<option value="">None</option>' + RESIDENCE_HALLS.map((hall) => `<option value="${escapeHtml(hall.name)}">${escapeHtml(hall.name)}</option>`).join("");
+  $("#residence-hall-choice").value = p.residenceHall;
+  $("#residence-hall-choice").onchange = (event) => { p.residenceHall = event.target.value; renderLocations(); };
   $("#allergen-choices").innerHTML = ALLERGENS.map((allergen) => `<button type="button" data-allergen="${allergen}" class="${p.avoids.includes(allergen) ? "danger" : ""}" aria-pressed="${p.avoids.includes(allergen)}">${ALLERGEN_LABELS[allergen]}<b>${p.avoids.includes(allergen) ? "×" : "+"}</b></button>`).join("");
   $("#liked-dishes").innerHTML = p.likedDishes.map((dish) => `<button type="button" data-remove-liked="${escapeHtml(dish)}">${escapeHtml(dish)} ×</button>`).join("");
   $("#disliked-dishes").innerHTML = p.dislikedDishes.map((dish) => `<button type="button" data-remove-disliked="${escapeHtml(dish)}">${escapeHtml(dish)} ×</button>`).join("");

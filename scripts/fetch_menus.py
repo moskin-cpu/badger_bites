@@ -19,12 +19,16 @@ FALLBACK_MARKETS = (
         "name": "Carson's Market",
         "slug": "carsons-market",
         "address": "Carson Gulley Center · 1515 Tripp Cir.",
+        "latitude": 43.07715570280584,
+        "longitude": -89.41134061885892,
     },
     {
         "id": 45374,
         "name": "Liz's Market",
         "slug": "lizs-market",
         "address": "Waters Residence Hall · 1200 Observatory Dr.",
+        "latitude": 43.07694917047651,
+        "longitude": -89.40694288799442,
     },
 )
 
@@ -104,11 +108,14 @@ def main() -> None:
             schools.append({**market, "active_menu_types": menu_types_for_school(market["id"])})
 
     for school in schools:
+        geolocation = school.get("geolocation") or {}
         location = {
             "id": school["id"],
             "name": school["name"],
             "slug": school["slug"],
             "address": school.get("address") or "UW–Madison campus",
+            "latitude": school.get("latitude") or geolocation.get("latitude"),
+            "longitude": school.get("longitude") or geolocation.get("longitude"),
             "menus": {},
         }
         menu_types = {item.get("slug"): item for item in school.get("active_menu_types") or []}
