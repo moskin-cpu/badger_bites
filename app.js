@@ -32,7 +32,7 @@ const RESIDENCE_HALLS = [
 const DEFAULT_PREFERENCES = {
   loves:["spicy", "protein", "comfort"],
   cuisines:["Mexican", "Chinese", "Japanese", "Indian", "American"],
-  avoidCuisines:["Italian", "Mediterranean"], likedDishes:["sushi"], dislikedDishes:["spaghetti and meatballs"], avoids:[], diet:"none", residenceHall:"",
+  avoidCuisines:["Italian", "Mediterranean"], likedDishes:["sushi", "steak"], dislikedDishes:["spaghetti and meatballs", "salad"], avoids:[], diet:"none", residenceHall:"",
 };
 const CUISINE_PATTERNS = {
   Italian:/pizza|pasta|pesto|lasagna|ravioli|cavatappi|marinara|parmesan|alfredo|italian/i,
