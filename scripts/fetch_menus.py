@@ -7,6 +7,7 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
 
 API_ROOT = "https://wisc-housingdining.api.nutrislice.com"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -96,7 +97,7 @@ def simplify_day(raw_day: dict) -> list[dict]:
 
 
 def main() -> None:
-    today = date.today()
+    today = datetime.now(ZoneInfo("America/Chicago")).date()
     earliest_day = today - timedelta(days=3)
     last_day = today + timedelta(days=13)
     schools = get_json(f"{API_ROOT}/menu/api/schools/")
