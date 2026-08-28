@@ -97,6 +97,7 @@ def simplify_day(raw_day: dict) -> list[dict]:
 
 def main() -> None:
     today = date.today()
+    earliest_day = today - timedelta(days=3)
     last_day = today + timedelta(days=13)
     schools = get_json(f"{API_ROOT}/menu/api/schools/")
     locations = []
@@ -119,7 +120,7 @@ def main() -> None:
             "menus": {},
         }
         menu_types = {item.get("slug"): item for item in school.get("active_menu_types") or []}
-        for week_start in (today, today + timedelta(days=7)):
+        for week_start in (earliest_day, earliest_day + timedelta(days=7), earliest_day + timedelta(days=14)):
             for meal in MEALS:
                 menu_type = menu_types.get(meal)
                 if not menu_type:
@@ -137,7 +138,7 @@ def main() -> None:
                     if not day_value:
                         continue
                     parsed = date.fromisoformat(day_value)
-                    if today <= parsed <= last_day:
+                    if earliest_day <= parsed <= last_day:
                         location["menus"].setdefault(day_value, {})[meal] = simplify_day(raw_day)
         locations.append(location)
 
@@ -145,6 +146,7 @@ def main() -> None:
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "firstDate": today.isoformat(),
+        "earliestDate": earliest_day.isoformat(),
         "lastDate": last_day.isoformat(),
         "dates": dates,
         "locations": locations,
