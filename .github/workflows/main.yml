@@ -34,6 +34,11 @@ jobs:
       - name: Refresh UW dining menus
         run: python scripts/fetch_menus.py
 
+      - name: Check date selection and menu failure handling
+        run: |
+          node --test tests/app.test.cjs
+          python -m unittest discover -s tests -p 'test_*.py'
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
@@ -43,3 +48,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+

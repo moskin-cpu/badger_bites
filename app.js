@@ -106,6 +106,16 @@ function prettyDate(value) {
   return new Intl.DateTimeFormat("en-US", { weekday:"long", month:"long", day:"numeric" }).format(new Date(`${value}T12:00:00`));
 }
 
+function campusDate(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone:"America/Chicago", year:"numeric", month:"2-digit", day:"2-digit" }).formatToParts(now);
+  const value = (type) => parts.find((part) => part.type === type).value;
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+function initialMenuDate(dates, today = campusDate()) {
+  return dates.includes(today) ? today : dates.find((date) => date > today) || dates.at(-1);
+}
+
 function renderControls() {
   const dateSelect = $("#date-select");
   dateSelect.innerHTML = (state.data?.dates || []).map((date) => `<option value="${date}" ${date === state.date ? "selected" : ""}>${escapeHtml(prettyDate(date))}</option>`).join("");
@@ -201,27 +211,40 @@ function openPreferences() { $("#preferences-modal").hidden = false; document.bo
 function closePreferences() { $("#preferences-modal").hidden = true; document.body.style.overflow = ""; }
 
 async function loadMenus() {
+  $("#previous-day").disabled = true;
+  $("#next-day").disabled = true;
   try {
     const response = await fetch(`./data/menus.json?v=${Date.now()}`, { cache:"no-store" });
     if (!response.ok) throw new Error("Menu snapshot could not be loaded");
-    state.data = await response.json();
-    state.date = state.data.dates.includes(state.data.firstDate) ? state.data.firstDate : state.data.dates[0];
-    const ageHours = Math.round((Date.now() - new Date(state.data.generatedAt).getTime()) / 3600000);
-    $("#data-status").innerHTML = `<i></i> ${ageHours > 6 ? "Menu snapshot" : "Recently refreshed"}`;
-    $("#data-status").classList.toggle("stale", ageHours > 6);
+    const data = await response.json();
+    if (!Array.isArray(data.dates) || !data.dates.length || !Array.isArray(data.locations) || !data.locations.length ||
+        !data.dates.every((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)) ||
+        !Number.isFinite(Date.parse(data.generatedAt))) throw new Error("Invalid menu snapshot");
+    state.data = { ...data, dates:[...new Set(data.dates)].sort() };
+    state.date = initialMenuDate(state.data.dates);
+    const ageHours = (Date.now() - Date.parse(state.data.generatedAt)) / 3600000;
+    const stale = ageHours > 6;
+    $("#data-status").textContent = stale ? `Updated ${prettyDate(campusDate(new Date(state.data.generatedAt)))}` : "Recently refreshed";
+    $("#data-status").classList.toggle("stale", stale);
+    $("#data-status").title = `Last refreshed: ${new Date(state.data.generatedAt).toLocaleString("en-US", { timeZone:"America/Chicago", timeZoneName:"short" })}`;
+    $("#menu-notice").hidden = !stale;
+    $("#menu-notice").textContent = stale ? "These menus may be out of date. Check UW Dining for the latest menu before heading out." : "";
     renderControls(); renderLocations();
   } catch {
+    state.data = null;
     $("#data-status").innerHTML = "Menu data unavailable";
     $("#data-status").classList.add("stale");
     $("#hall-list").classList.remove("is-loading");
-    $("#hall-list").innerHTML = '<div class="empty-state"><strong>Menus could not be loaded.</strong><span>Run the GitHub Pages workflow to refresh data.</span></div>';
+    $("#hall-list").setAttribute("aria-busy", "false");
+    $("#hall-list").innerHTML = '<div class="empty-state"><strong>Menus could not be loaded.</strong><button type="button" id="retry-menus">Try again</button><a href="https://wisc-housingdining.nutrislice.com/menu" target="_blank" rel="noreferrer">Check UW Dining menus ↗</a></div>';
+    $("#retry-menus").addEventListener("click", loadMenus);
   }
 }
 
 $("#date-select").addEventListener("change", (event) => { state.date = event.target.value; state.expanded = null; renderControls(); renderLocations(); });
 $("#meal-select").addEventListener("change", (event) => { state.meal = event.target.value; state.expanded = null; renderControls(); renderLocations(); });
-$("#previous-day").addEventListener("click", () => { const index = state.data.dates.indexOf(state.date); if (index > 0) { state.date = state.data.dates[index - 1]; renderControls(); renderLocations(); } });
-$("#next-day").addEventListener("click", () => { const index = state.data.dates.indexOf(state.date); if (index < state.data.dates.length - 1) { state.date = state.data.dates[index + 1]; renderControls(); renderLocations(); } });
+$("#previous-day").addEventListener("click", () => { const dates = state.data?.dates || []; const index = dates.indexOf(state.date); if (index > 0) { state.date = dates[index - 1]; state.expanded = null; renderControls(); renderLocations(); } });
+$("#next-day").addEventListener("click", () => { const dates = state.data?.dates || []; const index = dates.indexOf(state.date); if (index >= 0 && index < dates.length - 1) { state.date = dates[index + 1]; state.expanded = null; renderControls(); renderLocations(); } });
 document.querySelectorAll("[data-open-preferences]").forEach((button) => button.addEventListener("click", openPreferences));
 $("#close-preferences").addEventListener("click", closePreferences);
 $("#save-preferences").addEventListener("click", closePreferences);
@@ -232,3 +255,4 @@ $("#disliked-dish-form").addEventListener("submit", (event) => { event.preventDe
 $("#reset-preferences").addEventListener("click", () => { state.preferences = structuredClone(DEFAULT_PREFERENCES); renderPreferences(); renderProfile(); renderLocations(); });
 
 renderPreferences(); renderProfile(); loadMenus();
+

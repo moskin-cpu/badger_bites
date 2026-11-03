@@ -102,6 +102,7 @@ def main() -> None:
     last_day = today + timedelta(days=13)
     schools = get_json(f"{API_ROOT}/menu/api/schools/")
     locations = []
+    failures = []
 
     active_slugs = {school["slug"] for school in schools}
     active_names = {school["name"].casefold() for school in schools}
@@ -133,6 +134,7 @@ def main() -> None:
                     payload = get_json(f"{API_ROOT}{dated_path(template, week_start)}")
                 except (OSError, ValueError) as error:
                     print(f"Could not load {school['name']} {meal}: {error}")
+                    failures.append(f"{school['name']} {meal}")
                     continue
                 for raw_day in payload.get("days") or []:
                     day_value = raw_day.get("date")
@@ -144,6 +146,10 @@ def main() -> None:
         locations.append(location)
 
     dates = sorted({day for location in locations for day in location["menus"]})
+    if failures:
+        raise RuntimeError(f"Menu refresh incomplete ({len(failures)} failed requests); keeping the previous deployment.")
+    if not any(items for location in locations for meals in location["menus"].values() for items in meals.values()):
+        raise RuntimeError("Menu refresh returned no food items; keeping the previous deployment.")
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "firstDate": today.isoformat(),
@@ -159,3 +165,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
